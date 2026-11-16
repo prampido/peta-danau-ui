@@ -5,8 +5,9 @@
 <meta http-equiv="Cache-Control" content="no-cache">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Peta 6 Danau UI</title>
-<meta name="description" content="Peta interaktif enam danau di kampus Universitas Indonesia, Depok, dan perkiraan arah aliran airnya.">
-<link rel="stylesheet" href="lib/maplibre-gl.css?v=20261116b">
+<meta name="description" content="Peta interaktif enam danau di kampus Universitas Indonesia, Depok, dan perkiraan arah aliran airnya. Dibuat oleh Pramono Pido, Departemen Geografi FMIPA UI.">
+<meta name="author" content="Pramono Pido">
+<link rel="stylesheet" href="lib/maplibre-gl.css?v=20261116c">
 <style>
   :root{
     --hijau:#163517; --hijau2:#223d23; --krem:#f4ede0; --emas:#e0ae45; --air:#3b7f9c;
@@ -36,6 +37,10 @@
   .catatan{font-size:11.5px;opacity:.85}
   .kredit{font-size:10.5px;color:var(--emas);opacity:.9}
   .lipat{display:none}
+  .pembuat{display:flex;gap:12px;align-items:center;border-top:1px solid rgba(224,174,69,.35);padding-top:12px;margin:4px 0 10px}
+  .pembuat img{width:46px;height:auto;flex:none}
+  .pembuat .nama{font-size:14px;font-weight:700;margin:0 0 2px}
+  .pembuat .afiliasi{font-size:12px;line-height:1.4;margin:0;opacity:.9}
   .label-danau{pointer-events:none;text-align:center;font-weight:700;font-size:13px;color:#fff;
     text-shadow:0 0 3px #0d2a3a,0 0 6px #0d2a3a,0 0 2px #000;white-space:nowrap;line-height:1.15}
   .label-danau small{display:block;font-family:system-ui,sans-serif;font-weight:600;font-size:10.5px;color:var(--emas)}
@@ -76,10 +81,17 @@
   </div>
 
   <p class="catatan">Ketinggian dan arah aliran adalah perkiraan dari data satelit (pohon ikut terhitung), bukan hasil survei. Luas danau diukur dari peta OpenStreetMap; rencana induk kampus menyebut total 26,4 ha. Di tampilan 3D, beda tinggi dibesarkan 4 kali agar terlihat.</p>
+  <div class="pembuat">
+    <img src="img/logo-fmipa-ui.png?v=20261116c" alt="Logo Fakultas Matematika dan Ilmu Pengetahuan Alam Universitas Indonesia">
+    <div>
+      <p class="nama">Dibuat oleh Pramono Pido</p>
+      <p class="afiliasi">Departemen Geografi, Fakultas Matematika dan Ilmu Pengetahuan Alam, Universitas Indonesia</p>
+    </div>
+  </div>
   <p class="kredit">Data: © kontributor OpenStreetMap (ODbL) via Overture Maps · Copernicus DEM GLO-30 © DLR/Airbus, disediakan ESA · Peta dasar © kontributor OpenStreetMap · Citra © Esri · Ketinggian 3D: Mapzen Terrain Tiles (AWS)</p>
 </aside>
 
-<script src="lib/maplibre-gl.js?v=20261116b"></script>
+<script src="lib/maplibre-gl.js?v=20261116c"></script>
 <script>
 (function(){
   var HIJAU='#163517', EMAS='#e0ae45', AIR='#3b7f9c';
@@ -138,10 +150,10 @@
   function mulai(){
     map.addImage('panah',panah(),{pixelRatio:2});
     Promise.all([
-      getJSON('data/hutan_osm.geojson?v=20261116b'),
-      getJSON('data/kampus_ui_dan_ui_park.geojson?v=20261116b'),
-      getJSON('data/danau_ui_6.geojson?v=20261116b'),
-      getJSON('data/aliran_d8.geojson?v=20261116b')
+      getJSON('data/hutan_osm.geojson?v=20261116c'),
+      getJSON('data/kampus_ui_dan_ui_park.geojson?v=20261116c'),
+      getJSON('data/danau_ui_6.geojson?v=20261116c'),
+      getJSON('data/aliran_d8.geojson?v=20261116c')
     ]).then(function(d){
       map.addSource('hutan',{type:'geojson',data:d[0]});
       map.addSource('kampus',{type:'geojson',data:d[1]});
