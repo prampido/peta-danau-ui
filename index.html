@@ -2,10 +2,11 @@
 <html lang="id">
 <head>
 <meta charset="utf-8">
+<meta http-equiv="Cache-Control" content="no-cache">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Peta 6 Danau UI</title>
 <meta name="description" content="Peta interaktif enam danau di kampus Universitas Indonesia, Depok, dan perkiraan arah aliran airnya.">
-<link rel="stylesheet" href="lib/maplibre-gl.css">
+<link rel="stylesheet" href="lib/maplibre-gl.css?v=20261116b">
 <style>
   :root{
     --hijau:#163517; --hijau2:#223d23; --krem:#f4ede0; --emas:#e0ae45; --air:#3b7f9c;
@@ -78,7 +79,7 @@
   <p class="kredit">Data: © kontributor OpenStreetMap (ODbL) via Overture Maps · Copernicus DEM GLO-30 © DLR/Airbus, disediakan ESA · Peta dasar © kontributor OpenStreetMap · Citra © Esri · Ketinggian 3D: Mapzen Terrain Tiles (AWS)</p>
 </aside>
 
-<script src="lib/maplibre-gl.js"></script>
+<script src="lib/maplibre-gl.js?v=20261116b"></script>
 <script>
 (function(){
   var HIJAU='#163517', EMAS='#e0ae45', AIR='#3b7f9c';
@@ -137,10 +138,10 @@
   function mulai(){
     map.addImage('panah',panah(),{pixelRatio:2});
     Promise.all([
-      getJSON('data/hutan_osm.geojson'),
-      getJSON('data/kampus_ui_dan_ui_park.geojson'),
-      getJSON('data/danau_ui_6.geojson'),
-      getJSON('data/aliran_d8.geojson')
+      getJSON('data/hutan_osm.geojson?v=20261116b'),
+      getJSON('data/kampus_ui_dan_ui_park.geojson?v=20261116b'),
+      getJSON('data/danau_ui_6.geojson?v=20261116b'),
+      getJSON('data/aliran_d8.geojson?v=20261116b')
     ]).then(function(d){
       map.addSource('hutan',{type:'geojson',data:d[0]});
       map.addSource('kampus',{type:'geojson',data:d[1]});
@@ -160,11 +161,20 @@
         layout:{'symbol-placement':'line','symbol-spacing':70,'icon-image':'panah','icon-size':0.9,
           'icon-rotation-alignment':'map','icon-allow-overlap':true,'icon-ignore-placement':true}});
 
-      var fitur={};
+      var fitur={}, label=[];
+      function aturLabel(){
+        var z=map.getZoom();
+        label.forEach(function(el){
+          el.style.display=z<14.2?'none':'';
+          el.querySelector('small').style.display=z<15?'none':'';
+        });
+      }
+      map.on('zoom',aturLabel);
       d[2].features.forEach(function(f){
         var p=f.properties; fitur[p.nama]=f;
         var el=document.createElement('div'); el.className='label-danau';
         el.innerHTML='Danau '+p.nama+'<small>±'+p.elev_dsm_m+' m di atas laut · '+angka(p.luas_osm_ha.toFixed(1))+' ha</small>';
+        label.push(el);
         new maplibregl.Marker({element:el,anchor:'center'}).setLngLat(pusat(f)).addTo(map);
       });
 
@@ -193,6 +203,7 @@
       var all=new maplibregl.LngLatBounds();
       d[2].features.forEach(function(f){all.extend(batas(f));});
       map.fitBounds(all,{padding:padding(),duration:0});
+      aturLabel();
     });
   }
   if(map.isStyleLoaded()) mulai(); else map.once('style.load',mulai);
