@@ -7,7 +7,7 @@
 <title>Peta 6 Danau UI</title>
 <meta name="description" content="Peta interaktif enam danau di kampus Universitas Indonesia, Depok, dan perkiraan arah aliran airnya. Dibuat oleh Pramono Pido, Departemen Geografi FMIPA UI.">
 <meta name="author" content="Pramono Pido">
-<link rel="stylesheet" href="lib/maplibre-gl.css?v=20261116c">
+<link rel="stylesheet" href="lib/maplibre-gl.css?v=20261116d">
 <style>
   :root{
     --hijau:#163517; --hijau2:#223d23; --krem:#f4ede0; --emas:#e0ae45; --air:#3b7f9c;
@@ -82,16 +82,16 @@
 
   <p class="catatan">Ketinggian dan arah aliran adalah perkiraan dari data satelit (pohon ikut terhitung), bukan hasil survei. Luas danau diukur dari peta OpenStreetMap; rencana induk kampus menyebut total 26,4 ha. Di tampilan 3D, beda tinggi dibesarkan 4 kali agar terlihat.</p>
   <div class="pembuat">
-    <img src="img/logo-fmipa-ui.png?v=20261116c" alt="Logo Fakultas Matematika dan Ilmu Pengetahuan Alam Universitas Indonesia">
+    <img src="img/logo-fmipa-ui.png?v=20261116d" alt="Logo Fakultas Matematika dan Ilmu Pengetahuan Alam Universitas Indonesia">
     <div>
-      <p class="nama">Dibuat oleh Pramono Pido</p>
+      <p class="nama">Pramono Pido</p>
       <p class="afiliasi">Departemen Geografi, Fakultas Matematika dan Ilmu Pengetahuan Alam, Universitas Indonesia</p>
     </div>
   </div>
   <p class="kredit">Data: © kontributor OpenStreetMap (ODbL) via Overture Maps · Copernicus DEM GLO-30 © DLR/Airbus, disediakan ESA · Peta dasar © kontributor OpenStreetMap · Citra © Esri · Ketinggian 3D: Mapzen Terrain Tiles (AWS)</p>
 </aside>
 
-<script src="lib/maplibre-gl.js?v=20261116c"></script>
+<script src="lib/maplibre-gl.js?v=20261116d"></script>
 <script>
 (function(){
   var HIJAU='#163517', EMAS='#e0ae45', AIR='#3b7f9c';
@@ -150,10 +150,10 @@
   function mulai(){
     map.addImage('panah',panah(),{pixelRatio:2});
     Promise.all([
-      getJSON('data/hutan_osm.geojson?v=20261116c'),
-      getJSON('data/kampus_ui_dan_ui_park.geojson?v=20261116c'),
-      getJSON('data/danau_ui_6.geojson?v=20261116c'),
-      getJSON('data/aliran_d8.geojson?v=20261116c')
+      getJSON('data/hutan_osm.geojson?v=20261116d'),
+      getJSON('data/kampus_ui_dan_ui_park.geojson?v=20261116d'),
+      getJSON('data/danau_ui_6.geojson?v=20261116d'),
+      getJSON('data/aliran_d8.geojson?v=20261116d')
     ]).then(function(d){
       map.addSource('hutan',{type:'geojson',data:d[0]});
       map.addSource('kampus',{type:'geojson',data:d[1]});

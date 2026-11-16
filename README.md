@@ -2,7 +2,7 @@
 
 Peta interaktif enam danau di kampus Universitas Indonesia, Depok, beserta perkiraan arah aliran airnya.
 
-Dibuat oleh Pramono Pido, Departemen Geografi, Fakultas Matematika dan Ilmu Pengetahuan Alam, Universitas Indonesia.
+Pramono Pido, Departemen Geografi, Fakultas Matematika dan Ilmu Pengetahuan Alam, Universitas Indonesia.
 Halaman statis (MapLibre GL JS), terbuka tanpa akun: https://prampido.github.io/peta-danau-ui/
 
 ## Data
