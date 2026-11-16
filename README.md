@@ -9,4 +9,4 @@ Halaman statis (MapLibre GL JS), terbuka tanpa akun: https://prampido.github.io/
 - `data/kampus_ui_dan_ui_park.geojson`: batas landuse "Universitas Indonesia" dan "UI Park" dari OSM.
 - `data/aliran_d8.geojson`: garis aliran perkiraan (D8 steepest descent setelah pit-fill) dari Copernicus GLO-30 30 m. Ilustratif, bukan hasil survei.
 
-Kredit: Copernicus DEM GLO-30 (ESA/Airbus); © kontributor OpenStreetMap (ODbL) via Overture Maps; peta dasar © CARTO; citra © Esri; ketinggian 3D Mapzen Terrain Tiles (AWS Open Data). MapLibre GL JS (BSD-3-Clause) ada di `lib/`.
+Kredit: Copernicus DEM GLO-30 (ESA/Airbus); © kontributor OpenStreetMap (ODbL) via Overture Maps; peta dasar © kontributor OpenStreetMap; citra © Esri; ketinggian 3D Mapzen Terrain Tiles (AWS Open Data). MapLibre GL JS (BSD-3-Clause) ada di `lib/`.

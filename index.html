@@ -18,7 +18,7 @@
     background:rgba(22,53,23,.94);border:1px solid rgba(224,174,69,.5);border-radius:12px;padding:16px 16px 12px;
     box-shadow:0 6px 24px rgba(0,0,0,.35);z-index:2}
   .kicker{font-size:11px;letter-spacing:.12em;font-weight:700;color:var(--emas);margin:0 0 4px}
-  h1{font-family:Georgia,"Times New Roman",serif;font-size:22px;line-height:1.2;margin:0 0 8px}
+  h1{font-size:22px;line-height:1.2;margin:0 0 8px}
   p{font-size:13.5px;line-height:1.5;margin:0 0 10px}
   .tombol{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0 12px}
   .tombol button{flex:1 1 auto;font:inherit;font-size:13px;font-weight:600;padding:8px 10px;border-radius:8px;cursor:pointer;
@@ -35,7 +35,7 @@
   .catatan{font-size:11.5px;opacity:.85}
   .kredit{font-size:10.5px;color:var(--emas);opacity:.9}
   .lipat{display:none}
-  .label-danau{pointer-events:none;text-align:center;font-family:Georgia,serif;font-weight:700;font-size:13px;color:#fff;
+  .label-danau{pointer-events:none;text-align:center;font-weight:700;font-size:13px;color:#fff;
     text-shadow:0 0 3px #0d2a3a,0 0 6px #0d2a3a,0 0 2px #000;white-space:nowrap;line-height:1.15}
   .label-danau small{display:block;font-family:system-ui,sans-serif;font-weight:600;font-size:10.5px;color:var(--emas)}
   .maplibregl-popup-content{background:var(--hijau);color:var(--krem);border:1px solid var(--emas);border-radius:8px;font-size:13px}
@@ -70,12 +70,12 @@
   <div class="legenda">
     <span class="sw" style="background:var(--air)"></span><span>Danau</span>
     <span class="sw" style="background:#2f6b33"></span><span>Hutan / tutupan pohon</span>
-    <span class="sw" style="background:var(--emas);height:4px"></span><span>Arah aliran (perkiraan)</span>
+    <span class="sw" style="background:var(--emas);height:4px"></span><span>Arah aliran air (perkiraan)</span>
     <span class="sw" style="border:2px dashed var(--emas);background:transparent"></span><span>Batas kampus UI</span>
   </div>
 
-  <p class="catatan">Tinggi muka air dan arah aliran diperkirakan dari Copernicus DEM GLO-30 (30 m, ikut menghitung tajuk pohon). Ilustratif, bukan hasil survei. Luas dari poligon OSM; masterplan menyebut total 26,4 ha. Tampilan 3D memakai data ketinggian terbuka dan dibesarkan 4 kali agar beda tinggi terlihat.</p>
-  <p class="kredit">Data: © kontributor OpenStreetMap (ODbL) via Overture Maps · Copernicus DEM GLO-30 © DLR/Airbus, disediakan ESA · Peta dasar © CARTO · Citra © Esri · Ketinggian 3D: Mapzen Terrain Tiles (AWS)</p>
+  <p class="catatan">Ketinggian dan arah aliran adalah perkiraan dari data satelit (pohon ikut terhitung), bukan hasil survei. Luas danau diukur dari peta OpenStreetMap; rencana induk kampus menyebut total 26,4 ha. Di tampilan 3D, beda tinggi dibesarkan 4 kali agar terlihat.</p>
+  <p class="kredit">Data: © kontributor OpenStreetMap (ODbL) via Overture Maps · Copernicus DEM GLO-30 © DLR/Airbus, disediakan ESA · Peta dasar © kontributor OpenStreetMap · Citra © Esri · Ketinggian 3D: Mapzen Terrain Tiles (AWS)</p>
 </aside>
 
 <script src="lib/maplibre-gl.js"></script>
@@ -87,9 +87,9 @@
   var style={
     version:8,
     sources:{
-      peta:{type:'raster',tileSize:256,maxzoom:20,
-        tiles:['a','b','c','d'].map(function(s){return 'https://'+s+'.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}@2x.png';}),
-        attribution:'© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> · © <a href="https://carto.com/attributions">CARTO</a>'},
+      peta:{type:'raster',tileSize:256,maxzoom:19,
+        tiles:['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
+        attribution:'© <a href="https://www.openstreetmap.org/copyright">kontributor OpenStreetMap</a>'},
       satelit:{type:'raster',tileSize:256,maxzoom:19,
         tiles:['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'],
         attribution:'Citra © Esri, Maxar, Earthstar Geographics'},
@@ -134,7 +134,7 @@
     return g.getImageData(0,0,s,s);
   }
 
-  map.on('load',function(){
+  function mulai(){
     map.addImage('panah',panah(),{pixelRatio:2});
     Promise.all([
       getJSON('data/hutan_osm.geojson'),
@@ -164,7 +164,7 @@
       d[2].features.forEach(function(f){
         var p=f.properties; fitur[p.nama]=f;
         var el=document.createElement('div'); el.className='label-danau';
-        el.innerHTML='Danau '+p.nama+'<small>±'+p.elev_dsm_m+' mdpl · '+angka(p.luas_osm_ha.toFixed(1))+' ha</small>';
+        el.innerHTML='Danau '+p.nama+'<small>±'+p.elev_dsm_m+' m di atas laut · '+angka(p.luas_osm_ha.toFixed(1))+' ha</small>';
         new maplibregl.Marker({element:el,anchor:'center'}).setLngLat(pusat(f)).addTo(map);
       });
 
@@ -172,7 +172,7 @@
       URUTAN.forEach(function(n,i){
         var f=fitur[n]; if(!f) return;
         var p=f.properties, li=document.createElement('li'), b=document.createElement('button');
-        b.innerHTML='<span>'+(i<2?'Hulu · ':'')+'Danau '+n+'</span><span class="angka">±'+p.elev_dsm_m+' mdpl · '+angka(p.luas_osm_ha.toFixed(1))+' ha</span>';
+        b.innerHTML='<span>'+'Danau '+n+'</span><span class="angka">±'+p.elev_dsm_m+' m di atas laut · '+angka(p.luas_osm_ha.toFixed(1))+' ha</span>';
         b.addEventListener('click',function(){
           map.fitBounds(batas(f),{padding:padding(),maxZoom:16.8,duration:900});
           bukaInfo(f,pusat(f));
@@ -186,7 +186,7 @@
       map.on('click','aliran',function(e){
         var p=e.features[0].properties;
         new maplibregl.Popup().setLngLat(e.lngLat)
-          .setHTML('<b>Aliran '+p.urutan+'</b><br>Dari Danau '+p.dari+' ke '+(p.ke.indexOf('utara')===0?p.ke:'Danau '+p.ke)+'<br><small>Perkiraan dari model ketinggian, bukan survei.</small>')
+          .setHTML('<b>Aliran '+p.urutan+'</b><br>Dari Danau '+p.dari+' ke '+(p.ke.indexOf('utara')===0?p.ke:'Danau '+p.ke)+'<br><small>Perkiraan dari data satelit, bukan survei.</small>')
           .addTo(map);
       });
 
@@ -194,7 +194,8 @@
       d[2].features.forEach(function(f){all.extend(batas(f));});
       map.fitBounds(all,{padding:padding(),duration:0});
     });
-  });
+  }
+  if(map.isStyleLoaded()) mulai(); else map.once('style.load',mulai);
 
   var popup=null;
   function bukaInfo(f,ll){
@@ -203,7 +204,7 @@
     if(p.nama==='Salam') hilir=null;
     if(popup) popup.remove();
     popup=new maplibregl.Popup({maxWidth:'260px'}).setLngLat(ll).setHTML(
-      '<b>'+p.nama_osm+'</b><br>Tinggi muka air ±'+p.elev_dsm_m+' mdpl (perkiraan)<br>Luas '+angka(p.luas_osm_ha)+' ha (poligon OSM)<br>'+
+      '<b>'+p.nama_osm+'</b><br>Permukaan air ±'+p.elev_dsm_m+' m di atas laut (perkiraan)<br>Luas '+angka(p.luas_osm_ha)+' ha<br>'+
       (hilir?'Mengalir ke Danau '+hilir:'Mengalir terus ke utara, ke arah Jakarta')
     ).addTo(map);
   }
