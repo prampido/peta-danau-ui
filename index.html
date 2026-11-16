@@ -1,0 +1,248 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Peta 6 Danau UI</title>
+<meta name="description" content="Peta interaktif enam danau di kampus Universitas Indonesia, Depok, dan perkiraan arah aliran airnya.">
+<link rel="stylesheet" href="lib/maplibre-gl.css">
+<style>
+  :root{
+    --hijau:#163517; --hijau2:#223d23; --krem:#f4ede0; --emas:#e0ae45; --air:#3b7f9c;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:var(--hijau);color:var(--krem);
+    font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif}
+  #peta{position:absolute;inset:0}
+  .panel{position:absolute;top:12px;left:12px;width:330px;max-height:calc(100% - 24px);overflow:auto;
+    background:rgba(22,53,23,.94);border:1px solid rgba(224,174,69,.5);border-radius:12px;padding:16px 16px 12px;
+    box-shadow:0 6px 24px rgba(0,0,0,.35);z-index:2}
+  .kicker{font-size:11px;letter-spacing:.12em;font-weight:700;color:var(--emas);margin:0 0 4px}
+  h1{font-family:Georgia,"Times New Roman",serif;font-size:22px;line-height:1.2;margin:0 0 8px}
+  p{font-size:13.5px;line-height:1.5;margin:0 0 10px}
+  .tombol{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0 12px}
+  .tombol button{flex:1 1 auto;font:inherit;font-size:13px;font-weight:600;padding:8px 10px;border-radius:8px;cursor:pointer;
+    border:1px solid var(--emas);background:transparent;color:var(--krem)}
+  .tombol button[aria-pressed="true"]{background:var(--emas);color:var(--hijau)}
+  ol.danau{list-style:none;padding:0;margin:0 0 10px;counter-reset:d}
+  ol.danau li{margin:0}
+  ol.danau button{width:100%;text-align:left;font:inherit;font-size:13.5px;color:var(--krem);background:rgba(255,255,255,.05);
+    border:0;border-left:3px solid var(--air);border-radius:6px;padding:7px 10px;margin:0 0 5px;cursor:pointer;display:flex;justify-content:space-between;gap:8px}
+  ol.danau button:hover,ol.danau button:focus-visible{background:rgba(224,174,69,.18);outline:none}
+  ol.danau .angka{color:var(--emas);font-size:12px;white-space:nowrap}
+  .legenda{display:grid;grid-template-columns:22px 1fr;gap:6px 8px;align-items:center;font-size:12.5px;margin:6px 0 10px}
+  .sw{width:20px;height:12px;border-radius:2px}
+  .catatan{font-size:11.5px;opacity:.85}
+  .kredit{font-size:10.5px;color:var(--emas);opacity:.9}
+  .lipat{display:none}
+  .label-danau{pointer-events:none;text-align:center;font-family:Georgia,serif;font-weight:700;font-size:13px;color:#fff;
+    text-shadow:0 0 3px #0d2a3a,0 0 6px #0d2a3a,0 0 2px #000;white-space:nowrap;line-height:1.15}
+  .label-danau small{display:block;font-family:system-ui,sans-serif;font-weight:600;font-size:10.5px;color:var(--emas)}
+  .maplibregl-popup-content{background:var(--hijau);color:var(--krem);border:1px solid var(--emas);border-radius:8px;font-size:13px}
+  .maplibregl-popup-tip{border-top-color:var(--emas)!important;border-bottom-color:var(--emas)!important}
+  .maplibregl-popup-close-button{color:var(--krem)}
+  @media (max-width:640px){
+    .panel{top:auto;bottom:0;left:0;right:0;width:auto;max-height:52%;border-radius:14px 14px 0 0;padding:12px 16px calc(10px + env(safe-area-inset-bottom))}
+    h1{font-size:19px}
+    .lipat{display:block;position:absolute;right:12px;top:10px;font:inherit;font-size:12px;background:transparent;color:var(--emas);border:1px solid var(--emas);border-radius:6px;padding:4px 8px}
+    .panel.tertutup{max-height:96px;overflow:hidden}
+    .maplibregl-ctrl-bottom-right{bottom:96px}
+  }
+</style>
+</head>
+<body>
+<div id="peta" role="application" aria-label="Peta interaktif danau UI"></div>
+
+<aside class="panel" id="panel">
+  <button class="lipat" id="lipat" aria-expanded="true">Tutup</button>
+  <div class="kicker">JALAN AIR DI KAMPUS UI</div>
+  <h1>Enam danau, satu rantai aliran</h1>
+  <p>Kampus UI Depok punya enam danau yang saling tersambung. Air mengalir dari Kenanga dan Agathis di hulu, lewat Mahoni, Puspa, dan Ulin, lalu ke Salam sebelum terus ke utara.</p>
+
+  <div class="tombol" role="group" aria-label="Tampilan peta">
+    <button id="b-peta" aria-pressed="true">Peta</button>
+    <button id="b-satelit" aria-pressed="false">Satelit</button>
+    <button id="b-3d" aria-pressed="false">3D</button>
+  </div>
+
+  <ol class="danau" id="daftar"></ol>
+
+  <div class="legenda">
+    <span class="sw" style="background:var(--air)"></span><span>Danau</span>
+    <span class="sw" style="background:#2f6b33"></span><span>Hutan / tutupan pohon</span>
+    <span class="sw" style="background:var(--emas);height:4px"></span><span>Arah aliran (perkiraan)</span>
+    <span class="sw" style="border:2px dashed var(--emas);background:transparent"></span><span>Batas kampus UI</span>
+  </div>
+
+  <p class="catatan">Tinggi muka air dan arah aliran diperkirakan dari Copernicus DEM GLO-30 (30 m, ikut menghitung tajuk pohon). Ilustratif, bukan hasil survei. Luas dari poligon OSM; masterplan menyebut total 26,4 ha. Tampilan 3D memakai data ketinggian terbuka dan dibesarkan 4 kali agar beda tinggi terlihat.</p>
+  <p class="kredit">Data: © kontributor OpenStreetMap (ODbL) via Overture Maps · Copernicus DEM GLO-30 © DLR/Airbus, disediakan ESA · Peta dasar © CARTO · Citra © Esri · Ketinggian 3D: Mapzen Terrain Tiles (AWS)</p>
+</aside>
+
+<script src="lib/maplibre-gl.js"></script>
+<script>
+(function(){
+  var HIJAU='#163517', EMAS='#e0ae45', AIR='#3b7f9c';
+  var URUTAN=['Kenanga','Agathis','Mahoni','Puspa','Ulin','Salam'];
+
+  var style={
+    version:8,
+    sources:{
+      peta:{type:'raster',tileSize:256,maxzoom:20,
+        tiles:['a','b','c','d'].map(function(s){return 'https://'+s+'.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}@2x.png';}),
+        attribution:'© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> · © <a href="https://carto.com/attributions">CARTO</a>'},
+      satelit:{type:'raster',tileSize:256,maxzoom:19,
+        tiles:['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'],
+        attribution:'Citra © Esri, Maxar, Earthstar Geographics'},
+      dem:{type:'raster-dem',encoding:'terrarium',tileSize:256,maxzoom:15,
+        tiles:['https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png'],
+        attribution:'Ketinggian: Mapzen Terrain Tiles'}
+    },
+    layers:[
+      {id:'latar',type:'background',paint:{'background-color':'#ece4d3'}},
+      {id:'peta',type:'raster',source:'peta'},
+      {id:'satelit',type:'raster',source:'satelit',layout:{visibility:'none'}}
+    ]
+  };
+
+  var map=new maplibregl.Map({
+    container:'peta', style:style,
+    center:[106.8275,-6.3605], zoom:14.6, maxPitch:75,
+    attributionControl:{compact:true}
+  });
+  map.addControl(new maplibregl.NavigationControl({visualizePitch:true}),'bottom-right');
+  map.addControl(new maplibregl.ScaleControl({unit:'metric'}),'bottom-left');
+
+  function getJSON(u){return fetch(u).then(function(r){return r.json();});}
+  function pusat(f){
+    var ring=f.geometry.coordinates[0], x=0, y=0, n=ring.length-1;
+    for(var i=0;i<n;i++){x+=ring[i][0];y+=ring[i][1];}
+    return [x/n,y/n];
+  }
+  function batas(f){
+    var b=new maplibregl.LngLatBounds();
+    f.geometry.coordinates[0].forEach(function(c){b.extend(c);});
+    return b;
+  }
+  function angka(v){return String(v).replace('.',',');}
+
+  function panah(){
+    var s=48, c=document.createElement('canvas'); c.width=c.height=s;
+    var g=c.getContext('2d');
+    g.fillStyle=EMAS; g.strokeStyle=HIJAU; g.lineWidth=3;
+    g.beginPath(); g.moveTo(s*0.85,s/2); g.lineTo(s*0.2,s*0.18); g.lineTo(s*0.35,s/2); g.lineTo(s*0.2,s*0.82); g.closePath();
+    g.stroke(); g.fill();
+    return g.getImageData(0,0,s,s);
+  }
+
+  map.on('load',function(){
+    map.addImage('panah',panah(),{pixelRatio:2});
+    Promise.all([
+      getJSON('data/hutan_osm.geojson'),
+      getJSON('data/kampus_ui_dan_ui_park.geojson'),
+      getJSON('data/danau_ui_6.geojson'),
+      getJSON('data/aliran_d8.geojson')
+    ]).then(function(d){
+      map.addSource('hutan',{type:'geojson',data:d[0]});
+      map.addSource('kampus',{type:'geojson',data:d[1]});
+      map.addSource('danau',{type:'geojson',data:d[2]});
+      map.addSource('aliran',{type:'geojson',data:d[3]});
+
+      map.addLayer({id:'hutan',type:'fill',source:'hutan',paint:{'fill-color':'#2f6b33','fill-opacity':0.42}});
+      map.addLayer({id:'kampus',type:'line',source:'kampus',filter:['==',['get','nama'],'Universitas Indonesia'],
+        paint:{'line-color':EMAS,'line-width':2.2,'line-dasharray':[3,2]}});
+      map.addLayer({id:'danau',type:'fill',source:'danau',paint:{'fill-color':AIR,'fill-opacity':0.9}});
+      map.addLayer({id:'danau-garis',type:'line',source:'danau',paint:{'line-color':'#e9f4f8','line-width':1.2}});
+      map.addLayer({id:'aliran-halo',type:'line',source:'aliran',layout:{'line-cap':'round','line-join':'round'},
+        paint:{'line-color':HIJAU,'line-width':6,'line-opacity':0.55}});
+      map.addLayer({id:'aliran',type:'line',source:'aliran',layout:{'line-cap':'round','line-join':'round'},
+        paint:{'line-color':EMAS,'line-width':3}});
+      map.addLayer({id:'aliran-panah',type:'symbol',source:'aliran',
+        layout:{'symbol-placement':'line','symbol-spacing':70,'icon-image':'panah','icon-size':0.9,
+          'icon-rotation-alignment':'map','icon-allow-overlap':true,'icon-ignore-placement':true}});
+
+      var fitur={};
+      d[2].features.forEach(function(f){
+        var p=f.properties; fitur[p.nama]=f;
+        var el=document.createElement('div'); el.className='label-danau';
+        el.innerHTML='Danau '+p.nama+'<small>±'+p.elev_dsm_m+' mdpl · '+angka(p.luas_osm_ha.toFixed(1))+' ha</small>';
+        new maplibregl.Marker({element:el,anchor:'center'}).setLngLat(pusat(f)).addTo(map);
+      });
+
+      var ol=document.getElementById('daftar');
+      URUTAN.forEach(function(n,i){
+        var f=fitur[n]; if(!f) return;
+        var p=f.properties, li=document.createElement('li'), b=document.createElement('button');
+        b.innerHTML='<span>'+(i<2?'Hulu · ':'')+'Danau '+n+'</span><span class="angka">±'+p.elev_dsm_m+' mdpl · '+angka(p.luas_osm_ha.toFixed(1))+' ha</span>';
+        b.addEventListener('click',function(){
+          map.fitBounds(batas(f),{padding:padding(),maxZoom:16.8,duration:900});
+          bukaInfo(f,pusat(f));
+        });
+        li.appendChild(b); ol.appendChild(li);
+      });
+
+      map.on('click','danau',function(e){bukaInfo(e.features[0],e.lngLat);});
+      map.on('mouseenter','danau',function(){map.getCanvas().style.cursor='pointer';});
+      map.on('mouseleave','danau',function(){map.getCanvas().style.cursor='';});
+      map.on('click','aliran',function(e){
+        var p=e.features[0].properties;
+        new maplibregl.Popup().setLngLat(e.lngLat)
+          .setHTML('<b>Aliran '+p.urutan+'</b><br>Dari Danau '+p.dari+' ke '+(p.ke.indexOf('utara')===0?p.ke:'Danau '+p.ke)+'<br><small>Perkiraan dari model ketinggian, bukan survei.</small>')
+          .addTo(map);
+      });
+
+      var all=new maplibregl.LngLatBounds();
+      d[2].features.forEach(function(f){all.extend(batas(f));});
+      map.fitBounds(all,{padding:padding(),duration:0});
+    });
+  });
+
+  var popup=null;
+  function bukaInfo(f,ll){
+    var p=f.properties, i=URUTAN.indexOf(p.nama);
+    var hilir=i>=0&&i<URUTAN.length-1?(i<2?'Mahoni':URUTAN[i+1]):null;
+    if(p.nama==='Salam') hilir=null;
+    if(popup) popup.remove();
+    popup=new maplibregl.Popup({maxWidth:'260px'}).setLngLat(ll).setHTML(
+      '<b>'+p.nama_osm+'</b><br>Tinggi muka air ±'+p.elev_dsm_m+' mdpl (perkiraan)<br>Luas '+angka(p.luas_osm_ha)+' ha (poligon OSM)<br>'+
+      (hilir?'Mengalir ke Danau '+hilir:'Mengalir terus ke utara, ke arah Jakarta')
+    ).addTo(map);
+  }
+
+  function padding(){
+    var kecil=window.innerWidth<=640;
+    return kecil?{top:30,bottom:Math.round(window.innerHeight*0.5)+10,left:20,right:20}:{top:40,bottom:40,left:370,right:60};
+  }
+
+  function tekan(id,on){document.getElementById(id).setAttribute('aria-pressed',on?'true':'false');}
+  document.getElementById('b-peta').onclick=function(){
+    map.setLayoutProperty('peta','visibility','visible'); map.setLayoutProperty('satelit','visibility','none');
+    tekan('b-peta',true); tekan('b-satelit',false);
+  };
+  document.getElementById('b-satelit').onclick=function(){
+    map.setLayoutProperty('satelit','visibility','visible'); map.setLayoutProperty('peta','visibility','none');
+    tekan('b-peta',false); tekan('b-satelit',true);
+  };
+  var tigaD=false;
+  document.getElementById('b-3d').onclick=function(){
+    tigaD=!tigaD; tekan('b-3d',tigaD);
+    if(tigaD){
+      if(!map.getLayer('bayangan')) map.addLayer({id:'bayangan',type:'hillshade',source:'dem',
+        paint:{'hillshade-exaggeration':0.6,'hillshade-shadow-color':'#173018'}},'hutan');
+      map.setTerrain({source:'dem',exaggeration:4});
+      map.easeTo({pitch:62,bearing:-25,duration:1200});
+    }else{
+      map.setTerrain(null);
+      if(map.getLayer('bayangan')) map.removeLayer('bayangan');
+      map.easeTo({pitch:0,bearing:0,duration:900});
+    }
+  };
+
+  var panel=document.getElementById('panel'), lipat=document.getElementById('lipat');
+  lipat.onclick=function(){
+    var tutup=panel.classList.toggle('tertutup');
+    lipat.textContent=tutup?'Buka':'Tutup'; lipat.setAttribute('aria-expanded',tutup?'false':'true');
+  };
+})();
+</script>
+</body>
+</html>
