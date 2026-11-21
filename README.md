@@ -5,6 +5,8 @@ Peta interaktif enam danau di kampus Universitas Indonesia, Depok, beserta perki
 Pramono Pido, Departemen Geografi, Fakultas Matematika dan Ilmu Pengetahuan Alam, Universitas Indonesia.
 Halaman statis (MapLibre GL JS), terbuka tanpa akun: https://prampido.github.io/peta-danau-ui/
 
+DOI Zenodo (semua versi): https://doi.org/10.5281/zenodo.24377683
+
 ## Data
 - `data/danau_ui_6.geojson`: 6 danau bernama dari OpenStreetMap (via Overture Maps rilis 2026-10-21). `elev_dsm_m` = perkiraan tinggi muka air dari Copernicus DEM GLO-30 (dibulatkan).
 - `data/hutan_osm.geojson`: poligon forest/wood OSM di sekitar kampus.
