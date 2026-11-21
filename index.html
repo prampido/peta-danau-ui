@@ -7,7 +7,7 @@
 <title>Peta 6 Danau UI</title>
 <meta name="description" content="Peta interaktif enam danau di kampus Universitas Indonesia, Depok, dan perkiraan arah aliran airnya. Pramono Pido, Departemen Geografi FMIPA UI.">
 <meta name="author" content="Pramono Pido">
-<link rel="stylesheet" href="lib/maplibre-gl.css?v=20261116d">
+<link rel="stylesheet" href="lib/maplibre-gl.css?v=20261121a">
 <style>
   :root{
     --hijau:#163517; --hijau2:#223d23; --krem:#f4ede0; --emas:#e0ae45; --air:#3b7f9c;
@@ -35,6 +35,11 @@
   .legenda{display:grid;grid-template-columns:22px 1fr;gap:6px 8px;align-items:center;font-size:12.5px;margin:6px 0 10px}
   .sw{width:20px;height:12px;border-radius:2px}
   .catatan{font-size:11.5px;opacity:.85}
+  .pesan{position:absolute;top:12px;left:50%;transform:translateX(-50%);z-index:3;max-width:min(520px,calc(100% - 24px));
+    background:var(--hijau);color:var(--krem);border:1px solid var(--emas);border-radius:10px;padding:10px 14px;font-size:13px;line-height:1.45;box-shadow:0 6px 24px rgba(0,0,0,.35)}
+  .pesan[hidden]{display:none}
+  @media (min-width:641px){.pesan{left:calc(50% + 180px)}}
+  .tombol button:disabled{opacity:.6;cursor:progress}
   .kredit{font-size:10.5px;color:var(--emas);opacity:.9}
   .lipat{display:none}
   .pembuat{display:flex;gap:12px;align-items:center;border-top:1px solid rgba(224,174,69,.35);padding-top:12px;margin:4px 0 10px}
@@ -58,6 +63,7 @@
 </head>
 <body>
 <div id="peta" role="application" aria-label="Peta interaktif danau UI"></div>
+<div id="pesan" class="pesan" role="status" hidden></div>
 
 <aside class="panel" id="panel">
   <button class="lipat" id="lipat" aria-expanded="true">Tutup</button>
@@ -82,7 +88,7 @@
 
   <p class="catatan">Ketinggian dan arah aliran adalah perkiraan dari data satelit (pohon ikut terhitung), bukan hasil survei. Luas danau diukur dari peta OpenStreetMap; rencana induk kampus menyebut total 26,4 ha. Di tampilan 3D, beda tinggi dibesarkan 4 kali agar terlihat.</p>
   <div class="pembuat">
-    <img src="img/logo-fmipa-ui.png?v=20261116d" alt="Logo Fakultas Matematika dan Ilmu Pengetahuan Alam Universitas Indonesia">
+    <img src="img/logo-fmipa-ui.png?v=20261121a" alt="Logo Fakultas Matematika dan Ilmu Pengetahuan Alam Universitas Indonesia">
     <div>
       <p class="nama">Pramono Pido</p>
       <p class="afiliasi">Departemen Geografi, Fakultas Matematika dan Ilmu Pengetahuan Alam, Universitas Indonesia</p>
@@ -91,7 +97,7 @@
   <p class="kredit">Data: © kontributor OpenStreetMap (ODbL) via Overture Maps · Copernicus DEM GLO-30 © DLR/Airbus, disediakan ESA · Peta dasar © kontributor OpenStreetMap · Citra © Esri · Ketinggian 3D: Mapzen Terrain Tiles (AWS)</p>
 </aside>
 
-<script src="lib/maplibre-gl.js?v=20261116d"></script>
+<script src="lib/maplibre-gl.js?v=20261121a"></script>
 <script>
 (function(){
   var HIJAU='#163517', EMAS='#e0ae45', AIR='#3b7f9c';
@@ -150,10 +156,10 @@
   function mulai(){
     map.addImage('panah',panah(),{pixelRatio:2});
     Promise.all([
-      getJSON('data/hutan_osm.geojson?v=20261116d'),
-      getJSON('data/kampus_ui_dan_ui_park.geojson?v=20261116d'),
-      getJSON('data/danau_ui_6.geojson?v=20261116d'),
-      getJSON('data/aliran_d8.geojson?v=20261116d')
+      getJSON('data/hutan_osm.geojson?v=20261121a'),
+      getJSON('data/kampus_ui_dan_ui_park.geojson?v=20261121a'),
+      getJSON('data/danau_ui_6.geojson?v=20261121a'),
+      getJSON('data/aliran_d8.geojson?v=20261121a')
     ]).then(function(d){
       map.addSource('hutan',{type:'geojson',data:d[0]});
       map.addSource('kampus',{type:'geojson',data:d[1]});
@@ -246,19 +252,65 @@
     map.setLayoutProperty('satelit','visibility','visible'); map.setLayoutProperty('peta','visibility','none');
     tekan('b-peta',false); tekan('b-satelit',true);
   };
-  var tigaD=false;
-  document.getElementById('b-3d').onclick=function(){
+  // Periksa apakah data ketinggian terbaca utuh. Mode hemat data atau
+  // perlindungan sidik jari di sebagian browser mengubah warna gambar,
+  // sehingga ketinggian jadi acak dan muncul "tiang" raksasa.
+  var DEM_UJI='https://s3.amazonaws.com/elevation-tiles-prod/terrarium/12/3263/2120.png';
+  var demUtuh=null;
+  function cekDem(){
+    if(demUtuh!==null) return Promise.resolve(demUtuh);
+    return fetch(DEM_UJI,{cache:'no-store'}).then(function(r){
+      if(!r.ok) throw new Error('dem');
+      return r.blob();
+    }).then(function(b){return createImageBitmap(b);}).then(function(img){
+      var c=document.createElement('canvas'); c.width=img.width; c.height=img.height;
+      var g=c.getContext('2d',{willReadFrequently:true}); g.drawImage(img,0,0);
+      var d=g.getImageData(0,0,c.width,c.height).data, w=c.width, h=c.height;
+      function tinggi(i){return d[i]*256+d[i+1]+d[i+2]/256-32768;}
+      var loncat=0, n=0, aneh=0;
+      for(var y=0;y<h;y+=2){
+        for(var x=0;x<w-1;x+=2){
+          var i=(y*w+x)*4, a=tinggi(i), b2=tinggi(i+4);
+          if(a<-100||a>3500) aneh++;
+          if(Math.abs(a-b2)>150) loncat++;
+          n++;
+        }
+      }
+      demUtuh=(aneh/n<0.001)&&(loncat/n<0.002);
+      return demUtuh;
+    }).catch(function(){demUtuh=false; return false;});
+  }
+
+  var pesan=document.getElementById('pesan'), pesanT=null;
+  function tampilPesan(t){
+    pesan.textContent=t; pesan.hidden=false;
+    clearTimeout(pesanT); pesanT=setTimeout(function(){pesan.hidden=true;},9000);
+  }
+
+  var tigaD=false, b3d=document.getElementById('b-3d');
+  b3d.onclick=function(){
+    if(b3d.disabled) return;
     tigaD=!tigaD; tekan('b-3d',tigaD);
-    if(tigaD){
-      if(!map.getLayer('bayangan')) map.addLayer({id:'bayangan',type:'hillshade',source:'dem',
-        paint:{'hillshade-exaggeration':0.6,'hillshade-shadow-color':'#173018'}},'hutan');
-      map.setTerrain({source:'dem',exaggeration:4});
-      map.easeTo({pitch:62,bearing:-25,duration:1200});
-    }else{
+    if(!tigaD){
       map.setTerrain(null);
       if(map.getLayer('bayangan')) map.removeLayer('bayangan');
+      pesan.hidden=true;
       map.easeTo({pitch:0,bearing:0,duration:900});
+      return;
     }
+    b3d.disabled=true;
+    cekDem().then(function(utuh){
+      b3d.disabled=false;
+      if(!tigaD) return;
+      if(utuh){
+        if(!map.getLayer('bayangan')) map.addLayer({id:'bayangan',type:'hillshade',source:'dem',
+          paint:{'hillshade-exaggeration':0.6,'hillshade-shadow-color':'#173018'}},'hutan');
+        map.setTerrain({source:'dem',exaggeration:4});
+      }else{
+        tampilPesan('Relief 3D tidak bisa ditampilkan di browser ini, biasanya karena mode hemat data. Peta ditampilkan miring tanpa relief. Matikan mode hemat data atau coba Chrome untuk melihat reliefnya.');
+      }
+      map.easeTo({pitch:utuh?62:55,bearing:-25,duration:1200});
+    });
   };
 
   var panel=document.getElementById('panel'), lipat=document.getElementById('lipat');
