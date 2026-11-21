@@ -7,7 +7,7 @@
 <title>Peta 6 Danau UI (CARTO)</title>
 <meta name="description" content="Peta interaktif enam danau di kampus Universitas Indonesia, Depok, dan perkiraan arah aliran airnya. Pramono Pido, Departemen Geografi FMIPA UI.">
 <meta name="author" content="Pramono Pido">
-<link rel="stylesheet" href="../lib/maplibre-gl.css?v=20261121a">
+<link rel="stylesheet" href="../lib/maplibre-gl.css?v=20261121b">
 <style>
   :root{
     --hijau:#163517; --hijau2:#223d23; --krem:#f4ede0; --emas:#e0ae45; --air:#3b7f9c;
@@ -46,9 +46,15 @@
   .pembuat img{width:46px;height:auto;flex:none}
   .pembuat .nama{font-size:14px;font-weight:700;margin:0 0 2px}
   .pembuat .afiliasi{font-size:12px;line-height:1.4;margin:0;opacity:.9}
-  .label-danau{pointer-events:none;text-align:center;font-weight:700;font-size:13px;color:#fff;
-    text-shadow:0 0 3px #0d2a3a,0 0 6px #0d2a3a,0 0 2px #000;white-space:nowrap;line-height:1.15}
-  .label-danau small{display:block;font-family:system-ui,sans-serif;font-weight:600;font-size:10.5px;color:var(--emas)}
+  .callout-garis,.callout-wadah{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:1;overflow:hidden}
+  .callout-garis .halo{stroke:#0f2a14;stroke-width:4;stroke-opacity:.55}
+  .callout-garis .garis{stroke:var(--emas);stroke-width:1.6}
+  .callout-garis circle{fill:var(--emas);stroke:#0f2a14;stroke-width:1.5}
+  .callout{position:absolute;left:0;top:0;background:rgba(22,53,23,.92);border:1px solid var(--emas);border-radius:6px;
+    padding:4px 8px;white-space:nowrap;line-height:1.2;box-shadow:0 2px 8px rgba(0,0,0,.3)}
+  .callout b{display:block;font-size:12.5px;color:var(--krem)}
+  .callout small{display:block;font-size:10.5px;font-weight:600;color:var(--emas)}
+  @media (max-width:640px){.callout{padding:3px 6px}.callout b{font-size:11.5px}.callout small{font-size:9.5px}}
   .maplibregl-popup-content{background:var(--hijau);color:var(--krem);border:1px solid var(--emas);border-radius:8px;font-size:13px}
   .maplibregl-popup-tip{border-top-color:var(--emas)!important;border-bottom-color:var(--emas)!important}
   .maplibregl-popup-close-button{color:var(--krem)}
@@ -89,7 +95,7 @@
 
   <p class="catatan">Ketinggian dan arah aliran adalah perkiraan dari data satelit (pohon ikut terhitung), bukan hasil survei. Luas danau diukur dari peta OpenStreetMap; rencana induk kampus menyebut total 26,4 ha. Di tampilan 3D, beda tinggi dibesarkan 4 kali agar terlihat.</p>
   <div class="pembuat">
-    <img src="../img/logo-fmipa-ui.png?v=20261121a" alt="Logo Fakultas Matematika dan Ilmu Pengetahuan Alam Universitas Indonesia">
+    <img src="../img/logo-fmipa-ui.png?v=20261121b" alt="Logo Fakultas Matematika dan Ilmu Pengetahuan Alam Universitas Indonesia">
     <div>
       <p class="nama">Pramono Pido</p>
       <p class="afiliasi">Departemen Geografi, Fakultas Matematika dan Ilmu Pengetahuan Alam, Universitas Indonesia</p>
@@ -98,7 +104,7 @@
   <p class="kredit">Data: © kontributor OpenStreetMap (ODbL) via Overture Maps · Copernicus DEM GLO-30 © DLR/Airbus, disediakan ESA · Peta dasar © kontributor OpenStreetMap, © CARTO · Citra © Esri · Ketinggian 3D: Mapzen Terrain Tiles (AWS)</p>
 </aside>
 
-<script src="../lib/maplibre-gl.js?v=20261121a"></script>
+<script src="../lib/maplibre-gl.js?v=20261121b"></script>
 <script>
 (function(){
   var HIJAU='#163517', EMAS='#e0ae45', AIR='#3b7f9c';
@@ -158,13 +164,101 @@
     return g.getImageData(0,0,s,s);
   }
 
+  // Titik di dalam danau yang paling jauh dari tepinya, untuk ujung garis penunjuk.
+  function titikDalam(f){
+    var ring=f.geometry.coordinates[0], i, j;
+    var b=batas(f), x0=b.getWest(), x1=b.getEast(), y0=b.getSouth(), y1=b.getNorth();
+    function didalam(x,y){
+      var c=false;
+      for(i=0,j=ring.length-1;i<ring.length;j=i++){
+        var xi=ring[i][0],yi=ring[i][1],xj=ring[j][0],yj=ring[j][1];
+        if(((yi>y)!==(yj>y))&&(x<(xj-xi)*(y-yi)/(yj-yi)+xi)) c=!c;
+      }
+      return c;
+    }
+    function jarakTepi(x,y){
+      var m=Infinity;
+      for(i=0,j=ring.length-1;i<ring.length;j=i++){
+        var ax=ring[j][0],ay=ring[j][1],bx=ring[i][0],by=ring[i][1];
+        var dx=bx-ax,dy=by-ay,t=((x-ax)*dx+(y-ay)*dy)/(dx*dx+dy*dy||1);
+        t=Math.max(0,Math.min(1,t));
+        var ex=ax+t*dx-x,ey=ay+t*dy-y; m=Math.min(m,ex*ex+ey*ey);
+      }
+      return m;
+    }
+    var terbaik=pusat(f), nilai=-1, N=30;
+    for(var a=0;a<=N;a++) for(var c2=0;c2<=N;c2++){
+      var x=x0+(x1-x0)*a/N, y=y0+(y1-y0)*c2/N;
+      if(!didalam(x,y)) continue;
+      var v=jarakTepi(x,y); if(v>nilai){nilai=v; terbaik=[x,y];}
+    }
+    return terbaik;
+  }
+
+  // Label nama danau dengan garis penunjuk, selalu tampil di semua tingkat perbesaran.
+  var KANAN={Ulin:1,Kenanga:1};
+  var callout=[], wadahLabel=null, svgGaris=null, jadwal=false;
+  function buatCallout(fs){
+    var wadah=map.getContainer();
+    svgGaris=document.createElementNS('http://www.w3.org/2000/svg','svg');
+    svgGaris.setAttribute('class','callout-garis');
+    wadahLabel=document.createElement('div'); wadahLabel.className='callout-wadah';
+    wadah.appendChild(svgGaris); wadah.appendChild(wadahLabel);
+    fs.forEach(function(f){
+      var p=f.properties;
+      var el=document.createElement('div'); el.className='callout';
+      el.innerHTML='<b>Danau '+p.nama+'</b><small>±'+p.elev_dsm_m+' m di atas laut · '+angka(p.luas_osm_ha.toFixed(1))+' ha</small>';
+      wadahLabel.appendChild(el);
+      var halo=document.createElementNS('http://www.w3.org/2000/svg','line'); halo.setAttribute('class','halo');
+      var garis=document.createElementNS('http://www.w3.org/2000/svg','line'); garis.setAttribute('class','garis');
+      var titik=document.createElementNS('http://www.w3.org/2000/svg','circle'); titik.setAttribute('r','3.5');
+      svgGaris.appendChild(halo); svgGaris.appendChild(garis); svgGaris.appendChild(titik);
+      callout.push({nama:p.nama,ll:titikDalam(f),el:el,halo:halo,garis:garis,titik:titik});
+    });
+    // 'render' juga menangkap perubahan ketinggian saat data 3D selesai dimuat.
+    map.on('render',aturCallout); map.on('resize',aturCallout);
+  }
+  function aturCallout(){
+    if(jadwal||!callout.length) return; jadwal=true;
+    requestAnimationFrame(function(){ jadwal=false; susunCallout(); });
+  }
+  function susunCallout(){
+    var W=map.getContainer().clientWidth, H=map.getContainer().clientHeight;
+    var JARAK=W<=640?26:Math.min(64,Math.max(40,W*0.05)), CELAH=4;
+    var kiri=[], kanan=[];
+    callout.forEach(function(c){
+      var pt=map.project(c.ll); c.x=pt.x; c.y=pt.y;
+      c.w=c.el.offsetWidth; c.h=c.el.offsetHeight;
+      c.tampil=pt.x>-20&&pt.x<W+20&&pt.y>-20&&pt.y<H+20;
+      c.sisi=KANAN[c.nama]?1:-1; (c.sisi<0?kiri:kanan).push(c);
+    });
+    [kiri,kanan].forEach(function(kel){
+      kel.sort(function(a,b){return a.y-b.y;});
+      var bawah=-Infinity;
+      kel.forEach(function(c){ c.ly=Math.max(c.y,bawah+c.h/2+CELAH); bawah=c.ly+c.h/2; });
+    });
+    callout.forEach(function(c){
+      var vis=c.tampil?'':'none';
+      c.el.style.display=vis; c.halo.style.display=vis; c.garis.style.display=vis; c.titik.style.display=vis;
+      if(!c.tampil) return;
+      var kiriLabel=c.sisi<0?c.x-JARAK-c.w:c.x+JARAK;
+      kiriLabel=Math.max(4,Math.min(W-4-c.w,kiriLabel));
+      var ex=c.sisi<0?kiriLabel+c.w:kiriLabel;
+      c.el.style.transform='translate('+kiriLabel+'px,'+(c.ly-c.h/2)+'px)';
+      [c.halo,c.garis].forEach(function(l){
+        l.setAttribute('x1',c.x); l.setAttribute('y1',c.y); l.setAttribute('x2',ex); l.setAttribute('y2',c.ly);
+      });
+      c.titik.setAttribute('cx',c.x); c.titik.setAttribute('cy',c.y);
+    });
+  }
+
   function mulai(){
     map.addImage('panah',panah(),{pixelRatio:2});
     Promise.all([
-      getJSON('../data/hutan_osm.geojson?v=20261121a'),
-      getJSON('../data/kampus_ui_dan_ui_park.geojson?v=20261121a'),
-      getJSON('../data/danau_ui_6.geojson?v=20261121a'),
-      getJSON('../data/aliran_d8.geojson?v=20261121a')
+      getJSON('../data/hutan_osm.geojson?v=20261121b'),
+      getJSON('../data/kampus_ui_dan_ui_park.geojson?v=20261121b'),
+      getJSON('../data/danau_ui_6.geojson?v=20261121b'),
+      getJSON('../data/aliran_d8.geojson?v=20261121b')
     ]).then(function(d){
       map.addSource('hutan',{type:'geojson',data:d[0]});
       map.addSource('kampus',{type:'geojson',data:d[1]});
@@ -184,22 +278,9 @@
         layout:{'symbol-placement':'line','symbol-spacing':70,'icon-image':'panah','icon-size':0.9,
           'icon-rotation-alignment':'map','icon-allow-overlap':true,'icon-ignore-placement':true}});
 
-      var fitur={}, label=[];
-      function aturLabel(){
-        var z=map.getZoom();
-        label.forEach(function(el){
-          el.style.display=z<14.2?'none':'';
-          el.querySelector('small').style.display=z<15?'none':'';
-        });
-      }
-      map.on('zoom',aturLabel);
-      d[2].features.forEach(function(f){
-        var p=f.properties; fitur[p.nama]=f;
-        var el=document.createElement('div'); el.className='label-danau';
-        el.innerHTML='Danau '+p.nama+'<small>±'+p.elev_dsm_m+' m di atas laut · '+angka(p.luas_osm_ha.toFixed(1))+' ha</small>';
-        label.push(el);
-        new maplibregl.Marker({element:el,anchor:'center'}).setLngLat(pusat(f)).addTo(map);
-      });
+      var fitur={};
+      d[2].features.forEach(function(f){fitur[f.properties.nama]=f;});
+      buatCallout(d[2].features);
 
       var ol=document.getElementById('daftar');
       URUTAN.forEach(function(n,i){
@@ -226,7 +307,7 @@
       var all=new maplibregl.LngLatBounds();
       d[2].features.forEach(function(f){all.extend(batas(f));});
       map.fitBounds(all,{padding:padding(),duration:0});
-      aturLabel();
+      aturCallout();
     });
   }
   if(map.isStyleLoaded()) mulai(); else map.once('style.load',mulai);
